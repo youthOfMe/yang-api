@@ -1,5 +1,6 @@
 package com.yangge.api.controller;
 
+import com.google.gson.Gson;
 import com.yang.yangapiclientsdknew.client.YangApiClient;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -8,6 +9,7 @@ import com.yangge.api.common.*;
 import com.yangge.api.constant.CommonConstant;
 import com.yangge.api.exception.BusinessException;
 import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoAddRequest;
+import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoInvokeRequest;
 import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
 import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
 import com.yangge.api.model.entity.InterfaceInfo;
@@ -278,5 +280,38 @@ public class InterfaceInfoController {
         interfaceInfo.setStatus(InterfaceInfoStatusEnum.OFFLINE.getValue());
         boolean result = interfaceInfoService.updateById(interfaceInfo);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 调用接口
+     *
+     * @param interfaceInfoInvokeRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/invoke")
+    public BaseResponse<Object> invokeInterface(@RequestBody InterfaceInfoInvokeRequest interfaceInfoInvokeRequest, HttpServletRequest request) {
+        if (interfaceInfoInvokeRequest == null || interfaceInfoInvokeRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        long id = interfaceInfoInvokeRequest.getId();
+        String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        // 判断是否存在
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (oldInterfaceInfo.getStatus() == InterfaceInfoStatusEnum.OFFLINE.getValue()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口已经关闭");
+        }
+        User loginUser = userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+        YangApiClient tempClient = new YangApiClient(accessKey, secretKey);
+        Gson gson = new Gson();
+        com.yang.yangapiclientsdknew.model.User user = gson.fromJson(userRequestParams, com.yang.yangapiclientsdknew.model.User.class);
+        // todo 根据调用接口的参数查询数据库判断调用什么接口
+        String usernameByPost = tempClient.getUsernameByPost(user);
+        return ResultUtils.success(usernameByPost);
     }
 }
