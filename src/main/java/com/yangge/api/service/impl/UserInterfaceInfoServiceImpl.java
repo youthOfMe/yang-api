@@ -1,5 +1,6 @@
 package com.yangge.api.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yangge.api.common.ErrorCode;
 import com.yangge.api.exception.BusinessException;
@@ -31,6 +32,28 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
         if (userInterfaceInfo.getLeftNum() < 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "剩余次数不能小于0");
         }
+    }
+
+    /**
+     * 调用接口统计
+     *
+     * @param interfaceInfoId
+     * @param userId
+     * @return
+     */
+    @Override
+    public boolean invokeCount(long interfaceInfoId, long userId) {
+        // 判断
+        if (interfaceInfoId <= 0 || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // todo 如果被同时调用呢？是不是应该使用分布式锁呢？
+        UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("interfaceInfoId", interfaceInfoId);
+        updateWrapper.eq("userId", userId);
+        updateWrapper.gt("leftNum", 0);
+        updateWrapper.setSql("leftNum = leftNum - 1, totalNum = totalNum + 1");
+        return this.update(updateWrapper);
     }
 }
 
