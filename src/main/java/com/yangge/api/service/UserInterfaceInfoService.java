@@ -9,5 +9,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2024-07-08 23:21:39
 */
 public interface UserInterfaceInfoService extends IService<UserInterfaceInfo> {
-
+    /**
+     * 校验
+     *
+     * @param userInterfaceInfo
+     * @param add
+     */
+    void validUserInterfaceInfo(UserInterfaceInfo userInterfaceInfo, boolean add);
 }
