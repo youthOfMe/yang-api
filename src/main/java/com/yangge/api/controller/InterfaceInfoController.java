@@ -1,12 +1,10 @@
 package com.yangge.api.controller;
 
+import com.yang.yangapiclientsdknew.client.YangApiClient;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yangge.api.annotation.AuthCheck;
-import com.yangge.api.common.BaseResponse;
-import com.yangge.api.common.DeleteRequest;
-import com.yangge.api.common.ErrorCode;
-import com.yangge.api.common.ResultUtils;
+import com.yangge.api.common.*;
 import com.yangge.api.constant.CommonConstant;
 import com.yangge.api.exception.BusinessException;
 import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoAddRequest;
@@ -14,6 +12,8 @@ import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
 import com.yangge.api.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
 import com.yangge.api.model.entity.InterfaceInfo;
 import com.yangge.api.model.entity.User;
+import com.yangge.api.model.enums.InterfaceInfoStatusEnum;
+import com.yangge.api.model.enums.UserRoleEnum;
 import com.yangge.api.service.InterfaceInfoService;
 import com.yangge.api.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 帖子接口
@@ -40,6 +41,9 @@ public class InterfaceInfoController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private YangApiClient yangApiClient;
 
     // region 增删改查
 
@@ -194,4 +198,85 @@ public class InterfaceInfoController {
         return ResultUtils.success(interfaceInfoPage);
     }
 
+    /**
+     * 发布上线
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/online")
+    public BaseResponse<Boolean> onlineInterfaceInfo(@RequestBody IdRequest idRequest, HttpServletRequest request) {
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        long id = idRequest.getId();
+        // 判断是否存在
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 判断接口是否可以调用
+        // todo 根据调用不同接口进行测试 调用数据库
+        com.yang.yangapiclientsdknew.model.User user = new com.yang.yangapiclientsdknew.model.User();
+        user.setUsername("test");
+        String username = yangApiClient.getUsernameByPost(user);
+        if (StringUtils.isBlank(username)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+
+        // 仅本人或者管理员可以修改
+        User loginUser = userService.getLoginUser(request);
+        if (!Objects.equals(loginUser.getId(), oldInterfaceInfo.getUserId()) && !Objects.equals(loginUser.getUserRole(), UserRoleEnum.ADMIN.getValue())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        // 更改接口信息
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.ONLINE.getValue());
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 下线
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/offline")
+    public BaseResponse<Boolean> offlineInterfaceInfo(@RequestBody IdRequest idRequest, HttpServletRequest request) {
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        long id = idRequest.getId();
+        // 判断是否存在
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 判断接口是否可以调用
+        // todo 根据调用不同接口进行测试 调用数据库
+        com.yang.yangapiclientsdknew.model.User user = new com.yang.yangapiclientsdknew.model.User();
+        user.setUsername("test");
+        String username = yangApiClient.getUsernameByPost(user);
+        if (StringUtils.isBlank(username)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+
+        // 仅本人或者管理员可以修改
+        User loginUser = userService.getLoginUser(request);
+        if (!Objects.equals(loginUser.getId(), oldInterfaceInfo.getUserId()) && !Objects.equals(loginUser.getUserRole(), UserRoleEnum.ADMIN.getValue())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        // 更改接口信息
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.OFFLINE.getValue());
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result);
+    }
 }

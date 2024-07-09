@@ -12,7 +12,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.yangge</groupId>
-    <artifactId>api</artifactId>
+    <artifactId>yang-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>yang-api</name>
     <properties>
@@ -117,7 +117,11 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
+        <dependency>
+            <groupId>com.yang</groupId>
+            <artifactId>yangapi-client-sdk-new</artifactId>
+            <version>0.0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
